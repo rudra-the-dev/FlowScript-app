@@ -7,6 +7,7 @@ from kivy.uix.scrollview import ScrollView
 from kivy.core.window import Window
 from kivy.utils import get_color_from_hex
 from kivy.metrics import dp
+from kivy.graphics import Color, Rectangle
 
 from lexer import Lexer
 from interpreter import Interpreter
@@ -21,20 +22,18 @@ class FlowScriptApp(App):
 
         titlebar = BoxLayout(
             size_hint_y=None,
-            height=dp(48),
+            height=dp(52),
             padding=[dp(14), 0],
             spacing=dp(10)
         )
-        titlebar.canvas.before.clear()
         with titlebar.canvas.before:
-            from kivy.graphics import Color, Rectangle
             Color(*get_color_from_hex('#131316'))
             self.title_rect = Rectangle(pos=titlebar.pos, size=titlebar.size)
         titlebar.bind(pos=self._update_rect, size=self._update_rect)
 
         title_label = Label(
             text='FlowScript',
-            font_size=dp(17),
+            font_size=dp(18),
             bold=True,
             color=get_color_from_hex('#e8e8f0'),
             size_hint_x=0.7,
@@ -44,14 +43,14 @@ class FlowScriptApp(App):
         title_label.bind(size=title_label.setter('text_size'))
 
         run_btn = Button(
-            text='▶  Run',
+            text='RUN',
             size_hint_x=0.3,
             size_hint_y=None,
-            height=dp(34),
+            height=dp(38),
             background_color=get_color_from_hex('#7c6af7'),
             color=get_color_from_hex('#ffffff'),
             bold=True,
-            font_size=dp(13)
+            font_size=dp(14)
         )
         run_btn.bind(on_press=self.run_code)
 
@@ -63,7 +62,6 @@ class FlowScriptApp(App):
             background_color=get_color_from_hex('#1e1e24'),
             foreground_color=get_color_from_hex('#e8e8f0'),
             cursor_color=get_color_from_hex('#7c6af7'),
-            font_name='RobotoMono-Regular',
             font_size=dp(13),
             padding=[dp(14), dp(14)],
             size_hint_y=0.55,
@@ -85,9 +83,8 @@ class FlowScriptApp(App):
 
         scroll = ScrollView(size_hint_y=0.45)
         self.output = Label(
-            text='Press Run to execute your FlowScript code',
+            text='Press RUN to execute your FlowScript code',
             color=get_color_from_hex('#555570'),
-            font_name='RobotoMono-Regular',
             font_size=dp(12),
             halign='left',
             valign='top',
@@ -143,9 +140,9 @@ class FlowScriptApp(App):
         result = ''
         for kind, text in output_lines:
             if kind == 'err':
-                result += f'[color=#f87171]✗  {text}[/color]\n'
+                result += f'[color=#f87171]ERROR: {text}[/color]\n'
             else:
-                result += f'[color=#4ade80]›  {text}[/color]\n'
+                result += f'[color=#4ade80]> {text}[/color]\n'
 
         self.output.text = result.strip()
 
