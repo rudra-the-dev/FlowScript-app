@@ -19,7 +19,7 @@ jobs:
           echo "date=$(date -u +'%Y%m%d')" >> $GITHUB_OUTPUT
         shell: bash
 
-      
+      # Caches the build tools so your next run is way faster
       - name: Cache Buildozer
         uses: actions/cache@v4
         with:
@@ -27,7 +27,8 @@ jobs:
           key: ${{ runner.os }}-buildozer-${{ hashFiles('buildozer.spec') }}-${{ steps.get-date.outputs.date }}
 
       - name: Build with Buildozer
-        uses: Artemis-Skade/buildozer-action@v1
+        uses: ArtemSBulgakov/buildozer-action@v1
+        id: buildozer
         with:
           workdir: .
           buildozer_version: master
@@ -36,4 +37,4 @@ jobs:
         uses: actions/upload-artifact@v4
         with:
           name: FlowScript-APK
-          path: bin/*.apk
+          path: ${{ steps.buildozer.outputs.filename }}
