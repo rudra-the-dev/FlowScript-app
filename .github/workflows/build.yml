@@ -10,7 +10,8 @@ jobs:
     runs-on: ubuntu-22.04
 
     steps:
-      - uses: actions/checkout@v4
+      - name: Checkout code
+        uses: actions/checkout@v4
 
       - name: Set up Python
         uses: actions/setup-python@v5
@@ -21,17 +22,22 @@ jobs:
         run: |
           sudo apt-get update
           sudo apt-get install -y git zip unzip openjdk-17-jdk python3-pip autoconf libtool pkg-config zlib1g-dev libncurses5-dev libncursesw5-dev libtinfo5 cmake libffi-dev libssl-dev
-          pip install --upgrade buildozer cython virtualenv
+          # Upgrade tools to avoid 'old version' conflicts
+          pip install --upgrade pip
+          pip install --user --upgrade buildozer cython==0.29.33 virtualenv
 
       - name: Build APK
         run: |
-          # Ensuring the build tools can find aidl
+          # Add local bin to path so buildozer command is found
           export PATH=$PATH:$HOME/.local/bin
-          # Run buildozer and automatically accept licenses
-          yes | buildozer -v android debug
+          
+          # Run buildozer. 
+          # The env var below handles the "Accept Licenses" part safely.
+          buildozer -v android debug
         env:
-          # This helps Buildozer find the Java home on Ubuntu runners
           JAVA_HOME: /usr/lib/jvm/java-17-openjdk-amd64
+          # This is the correct way to bypass the 'yes' prompt in CI
+          APP_ANDROID_ACCEPT_SDK_LICENSE: "True"
 
       - name: Upload APK
         uses: actions/upload-artifact@v4
