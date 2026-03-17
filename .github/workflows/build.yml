@@ -7,34 +7,34 @@ on:
 
 jobs:
   build:
-    runs-on: ubuntu-latest
+    runs-on: ubuntu-22.04
 
     steps:
-      - name: Checkout code
-        uses: actions/checkout@v4
+      - uses: actions/checkout@v4
 
-      - name: Get Date
-        id: get-date
+      - name: Set up Python
+        uses: actions/setup-python@v5
+        with:
+          python-version: '3.10'
+
+      - name: Install System Dependencies
         run: |
-          echo "date=$(date -u +'%Y%m%d')" >> $GITHUB_OUTPUT
-        shell: bash
+          sudo apt-get update
+          sudo apt-get install -y git zip unzip openjdk-17-jdk python3-pip autoconf libtool pkg-config zlib1g-dev libncurses5-dev libncursesw5-dev libtinfo5 cmake libffi-dev libssl-dev
+          pip install --upgrade buildozer cython virtualenv
 
-      # Caches the build tools so your next run is way faster
-      - name: Cache Buildozer
-        uses: actions/cache@v4
-        with:
-          path: .buildozer
-          key: ${{ runner.os }}-buildozer-${{ hashFiles('buildozer.spec') }}-${{ steps.get-date.outputs.date }}
-
-      - name: Build with Buildozer
-        uses: ArtemSBulgakov/buildozer-action@v1
-        id: buildozer
-        with:
-          workdir: .
-          buildozer_version: master
+      - name: Build APK
+        run: |
+          # Ensuring the build tools can find aidl
+          export PATH=$PATH:$HOME/.local/bin
+          # Run buildozer and automatically accept licenses
+          yes | buildozer -v android debug
+        env:
+          # This helps Buildozer find the Java home on Ubuntu runners
+          JAVA_HOME: /usr/lib/jvm/java-17-openjdk-amd64
 
       - name: Upload APK
         uses: actions/upload-artifact@v4
         with:
           name: FlowScript-APK
-          path: ${{ steps.buildozer.outputs.filename }}
+          path: bin/*.apk
