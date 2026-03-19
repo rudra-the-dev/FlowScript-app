@@ -21,3 +21,7 @@ repeat 3 times open "Instagram"
 - Flask (Vision backend)
 - OpenRouter AI (Screen understanding)
 - Android Accessibility Service (UI automation)
+
+### Related
+- [FlowScript Website](https://github.com/rudra-the-dev/flowscript-website) — Docs and playground
+- [FlowScript Backend](https://github.com/rudra-the-dev/flowscript-backend) — Backend service
