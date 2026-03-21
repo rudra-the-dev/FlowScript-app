@@ -164,5 +164,50 @@ class Lexer:
             var_name = parts[1].strip().strip("'")
             self.tokens.append(Token("ASK", {"question": question, "name": var_name}))
 
+        # OPEN APP: open "WhatsApp"
+        elif lower.startswith("open "):
+            app = line[5:].strip().strip('"').strip("'")
+            self.tokens.append(Token("OPEN_APP", {"app": app}))
+
+        # SEND WHATSAPP: send whatsapp to "Mom" saying "Hello"
+        elif lower.startswith("send whatsapp to ") and "saying" in lower:
+            parts = line.split("saying", 1)
+            contact = parts[0].replace("send whatsapp to", "").strip().strip('"').strip("'")
+            message = parts[1].strip().strip('"').strip("'")
+            self.tokens.append(Token("SEND_WHATSAPP", {"contact": contact, "message": message}))
+
+        # NOTIFY: notify me "message"
+        elif lower.startswith("notify me ") or lower.startswith("notify "):
+            message = line.split(" ", 2)[2].strip().strip('"').strip("'")
+            self.tokens.append(Token("NOTIFY", {"message": message}))
+
+        # TAP: tap at 200 300
+        elif lower.startswith("tap at "):
+            parts = line.split()
+            x = int(parts[2])
+            y = int(parts[3])
+            self.tokens.append(Token("TAP", {"x": x, "y": y}))
+
+        # SWIPE: swipe up / swipe down
+        elif lower.startswith("swipe "):
+            direction = line.split()[1].lower()
+            self.tokens.append(Token("SWIPE", {"direction": direction}))
+
+        # TYPE: type "hello"
+        elif lower.startswith("type "):
+            text = line[5:].strip().strip('"').strip("'")
+            self.tokens.append(Token("TYPE", {"text": text}))
+
+        # WAIT: wait 2 seconds
+        elif lower.startswith("wait "):
+            parts = line.split()
+            seconds = float(parts[1])
+            self.tokens.append(Token("WAIT", {"seconds": seconds}))
+
+        # AUTOMATE: automate "task description"
+        elif lower.startswith("automate "):
+            task = line[9:].strip().strip('"').strip("'")
+            self.tokens.append(Token("AUTOMATE", {"task": task}))
+
         else:
             self.tokens.append(Token("UNKNOWN", line))
