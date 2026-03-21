@@ -4,21 +4,96 @@ from kivy.uix.textinput import TextInput
 from kivy.uix.button import Button
 from kivy.uix.label import Label
 from kivy.uix.scrollview import ScrollView
+from kivy.uix.popup import Popup
 from kivy.core.window import Window
 from kivy.utils import get_color_from_hex
 from kivy.metrics import dp
 from kivy.graphics import Color, Rectangle
+from kivy.clock import Clock
 
 from lexer import Lexer
 from interpreter import Interpreter
 
 Window.clearcolor = get_color_from_hex('#0d0d0f')
 
+
+def is_accessibility_enabled():
+    try:
+        from jnius import autoclass
+        context = autoclass('org.kivy.android.PythonActivity').mActivity
+        AccessibilityManager = autoclass('android.view.accessibility.AccessibilityManager')
+        am = context.getSystemService(context.ACCESSIBILITY_SERVICE)
+        enabled_services = android.provider.Settings.Secure.getString(
+            context.getContentResolver(),
+            android.provider.Settings.Secure.ENABLED_ACCESSIBILITY_SERVICES
+        )
+        return enabled_services and 'app.flowscript.FlowScriptService' in enabled_services
+    except:
+        return True
+
+
+def open_accessibility_settings():
+    try:
+        from jnius import autoclass
+        context = autoclass('org.kivy.android.PythonActivity').mActivity
+        Intent = autoclass('android.content.Intent')
+        Settings = autoclass('android.provider.Settings')
+        intent = Intent(Settings.ACTION_ACCESSIBILITY_SETTINGS)
+        intent.addFlags(Intent.FLAG_ACTIVITY_NEW_TASK)
+        context.startActivity(intent)
+    except Exception as e:
+        print(f"Could not open accessibility settings: {e}")
+
+
+class PermissionBanner(BoxLayout):
+    def __init__(self, on_enable, **kwargs):
+        super().__init__(**kwargs)
+        self.orientation = 'horizontal'
+        self.size_hint_y = None
+        self.height = dp(52)
+        self.padding = [dp(12), 0]
+        self.spacing = dp(8)
+
+        with self.canvas.before:
+            Color(*get_color_from_hex('#2d1f0a'))
+            self.bg = Rectangle(pos=self.pos, size=self.size)
+        self.bind(pos=self._upd, size=self._upd)
+
+        msg = Label(
+            text='[color=#fbbf24]⚠ Enable Accessibility to use automations[/color]',
+            markup=True,
+            font_size=dp(12),
+            halign='left',
+            valign='middle',
+            size_hint_x=0.72
+        )
+        msg.bind(size=msg.setter('text_size'))
+
+        btn = Button(
+            text='Enable',
+            size_hint_x=0.28,
+            size_hint_y=None,
+            height=dp(34),
+            background_color=get_color_from_hex('#f59e0b'),
+            color=get_color_from_hex('#000000'),
+            bold=True,
+            font_size=dp(12)
+        )
+        btn.bind(on_press=lambda x: on_enable())
+
+        self.add_widget(msg)
+        self.add_widget(btn)
+
+    def _upd(self, instance, value):
+        self.bg.pos = instance.pos
+        self.bg.size = instance.size
+
+
 class FlowScriptApp(App):
 
     def build(self):
         self.title = 'FlowScript'
-        root = BoxLayout(orientation='vertical', spacing=dp(1))
+        self.root_layout = BoxLayout(orientation='vertical', spacing=dp(1))
 
         titlebar = BoxLayout(
             size_hint_y=None,
@@ -95,12 +170,59 @@ class FlowScriptApp(App):
         self.output.bind(texture_size=self.output.setter('size'))
         scroll.add_widget(self.output)
 
-        root.add_widget(titlebar)
-        root.add_widget(self.editor)
-        root.add_widget(output_label)
-        root.add_widget(scroll)
+        self.root_layout.add_widget(titlebar)
+        self.root_layout.add_widget(self.editor)
+        self.root_layout.add_widget(output_label)
+        self.root_layout.add_widget(scroll)
 
-        return root
+        Clock.schedule_once(self.check_accessibility, 1)
+
+        return self.root_layout
+
+    def check_accessibility(self, dt):
+        if not is_accessibility_enabled():
+            banner = PermissionBanner(on_enable=self.go_to_accessibility)
+            self.root_layout.add_widget(banner, index=len(self.root_layout.children))
+            self.accessibility_banner = banner
+
+    def go_to_accessibility(self):
+        open_accessibility_settings()
+        self.show_instructions()
+
+    def show_instructions(self):
+        content = BoxLayout(orientation='vertical', padding=dp(16), spacing=dp(12))
+
+        msg = Label(
+            text='[b]How to enable FlowScript:[/b]\n\n1. Find [color=#7c6af7]FlowScript[/color] in the list\n2. Tap it\n3. Turn on the toggle\n4. Tap Allow\n5. Come back here',
+            markup=True,
+            font_size=dp(14),
+            color=get_color_from_hex('#e8e8f0'),
+            halign='left',
+            valign='top'
+        )
+        msg.bind(size=msg.setter('text_size'))
+
+        done_btn = Button(
+            text='Done',
+            size_hint_y=None,
+            height=dp(44),
+            background_color=get_color_from_hex('#7c6af7'),
+            color=get_color_from_hex('#ffffff'),
+            bold=True
+        )
+
+        content.add_widget(msg)
+        content.add_widget(done_btn)
+
+        popup = Popup(
+            title='Enable Accessibility',
+            content=content,
+            size_hint=(0.88, 0.55),
+            background_color=get_color_from_hex('#0d0d1f'),
+            separator_color=get_color_from_hex('#7c6af7')
+        )
+        done_btn.bind(on_press=popup.dismiss)
+        popup.open()
 
     def _update_rect(self, instance, value):
         self.title_rect.pos = instance.pos
