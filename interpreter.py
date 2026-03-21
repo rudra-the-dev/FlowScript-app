@@ -32,6 +32,22 @@ class Interpreter:
             self.execute_repeat(token.value)
         elif token.type == "ASK":
             self.execute_ask(token.value)
+        elif token.type == "OPEN_APP":
+            self.execute_open_app(token.value)
+        elif token.type == "SEND_WHATSAPP":
+            self.execute_send_whatsapp(token.value)
+        elif token.type == "NOTIFY":
+            self.execute_notify(token.value)
+        elif token.type == "TAP":
+            self.execute_tap(token.value)
+        elif token.type == "SWIPE":
+            self.execute_swipe(token.value)
+        elif token.type == "TYPE":
+            self.execute_type(token.value)
+        elif token.type == "WAIT":
+            self.execute_wait(token.value)
+        elif token.type == "AUTOMATE":
+            self.execute_automate(token.value)
         elif token.type == "UNKNOWN":
             print(f"FlowScript Error: I don't understand '{token.value}'")
 
@@ -225,3 +241,73 @@ class Interpreter:
             return self.variables[value]
 
         return value
+
+    # ── AUTOMATION ───────────────────────────────────
+    def _get_bridge(self):
+        try:
+            import android_bridge
+            return android_bridge
+        except ImportError:
+            print("FlowScript: Automation only works on Android app")
+            return None
+
+    def execute_open_app(self, data):
+        bridge = self._get_bridge()
+        if not bridge:
+            return
+        app = self.resolve(data["app"])
+        success, msg = bridge.open_app(app)
+        print(msg)
+
+    def execute_send_whatsapp(self, data):
+        bridge = self._get_bridge()
+        if not bridge:
+            return
+        contact = self.resolve(data["contact"])
+        message = self.resolve(data["message"])
+        success, msg = bridge.open_app("WhatsApp")
+        if success:
+            task = f"find contact named {contact} and send them the message: {message}"
+            bridge.run_automation(task)
+        else:
+            print(f"FlowScript Error: Could not open WhatsApp")
+
+    def execute_notify(self, data):
+        bridge = self._get_bridge()
+        if not bridge:
+            return
+        message = self.resolve(data["message"])
+        bridge.send_notification(message)
+        print(f"Notification sent: {message}")
+
+    def execute_tap(self, data):
+        bridge = self._get_bridge()
+        if not bridge:
+            return
+        bridge.perform_tap(data["x"], data["y"])
+
+    def execute_swipe(self, data):
+        bridge = self._get_bridge()
+        if not bridge:
+            return
+        bridge.perform_swipe(data["direction"])
+
+    def execute_type(self, data):
+        bridge = self._get_bridge()
+        if not bridge:
+            return
+        text = self.resolve(data["text"])
+        bridge.perform_type(text)
+
+    def execute_wait(self, data):
+        import time
+        time.sleep(data["seconds"])
+
+    def execute_automate(self, data):
+        bridge = self._get_bridge()
+        if not bridge:
+            return
+        task = self.resolve(data["task"])
+        print(f"Running automation: {task}")
+        success, msg = bridge.run_automation(task)
+        print(msg)
