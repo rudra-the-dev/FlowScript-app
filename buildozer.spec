@@ -14,9 +14,10 @@ android.archs = arm64-v8a
 android.allow_backup = True
 android.add_src = FlowScriptService.java
 android.add_res = res
+android.manifest.services = FlowScriptService
+android.add_manifests = manifest_patch.xml
 orientation = portrait
 fullscreen = 0
-android.manifest.intent_filters = <service android:name="app.flowscript.FlowScriptService" android:permission="android.permission.BIND_ACCESSIBILITY_SERVICE" android:exported="true"><intent-filter><action android:name="android.accessibilityservice.AccessibilityService" /></intent-filter><meta-data android:name="android.accessibilityservice" android:resource="@xml/accessibility_service" /></service>
 
 [buildozer]
 log_level = 2
