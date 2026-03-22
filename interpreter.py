@@ -268,12 +268,18 @@ class Interpreter:
             return
         contact = self.resolve(data["contact"])
         message = self.resolve(data["message"])
-        success, msg = bridge.open_app("WhatsApp")
-        if success:
-            task = f"find contact named {contact} and send them the message: {message}"
-            bridge.run_automation(task)
-        else:
-            print(f"FlowScript Error: Could not open WhatsApp")
+        import threading
+        def run():
+            success, msg = bridge.open_app("WhatsApp")
+            if success:
+                import time
+                time.sleep(3)
+                task = f"find contact named {contact} and send them the message: {message}"
+                bridge.run_automation(task)
+            else:
+                print(f"FlowScript Error: Could not open WhatsApp")
+        t = threading.Thread(target=run, daemon=True)
+        t.start()
 
     def execute_notify(self, data):
         bridge = self._get_bridge()
@@ -312,5 +318,9 @@ class Interpreter:
             return
         task = self.resolve(data["task"])
         print(f"Running automation: {task}")
-        success, msg = bridge.run_automation(task)
-        print(msg)
+        import threading
+        def run():
+            success, msg = bridge.run_automation(task)
+            print(msg)
+        t = threading.Thread(target=run, daemon=True)
+        t.start()
