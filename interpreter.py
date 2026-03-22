@@ -258,6 +258,9 @@ class Interpreter:
         app = self.resolve(data["app"])
         success, msg = bridge.open_app(app)
         print(msg)
+        if success:
+            import time
+            time.sleep(3)
 
     def execute_send_whatsapp(self, data):
         bridge = self._get_bridge()
