@@ -131,8 +131,10 @@ def open_app(app_name):
         from jnius import autoclass
         context = get_context()
         Intent = autoclass('android.content.Intent')
+        Uri = autoclass('android.net.Uri')
         pm = context.getPackageManager()
 
+        # Try 1 — getLaunchIntentForPackage
         launch_intent = pm.getLaunchIntentForPackage(package)
         if launch_intent:
             launch_intent.addFlags(Intent.FLAG_ACTIVITY_NEW_TASK)
@@ -140,13 +142,24 @@ def open_app(app_name):
             time.sleep(2)
             return True, f"Opened {app_name}"
 
+        # Try 2 — ACTION_MAIN with CATEGORY_LAUNCHER
         intent = Intent(Intent.ACTION_MAIN)
         intent.addCategory(Intent.CATEGORY_LAUNCHER)
         intent.setPackage(package)
         intent.addFlags(Intent.FLAG_ACTIVITY_NEW_TASK)
-        context.startActivity(intent)
-        time.sleep(2)
-        return True, f"Opened {app_name}"
+        try:
+            context.startActivity(intent)
+            time.sleep(2)
+            return True, f"Opened {app_name}"
+        except:
+            pass
+
+        # Try 3 — Play Store deep link as last resort
+        store_intent = Intent(Intent.ACTION_VIEW)
+        store_intent.setData(Uri.parse(f"market://details?id={package}"))
+        store_intent.addFlags(Intent.FLAG_ACTIVITY_NEW_TASK)
+        context.startActivity(store_intent)
+        return False, f"App '{app_name}' not installed. Opening Play Store."
 
     except Exception as e:
         return False, f"Error opening '{app_name}': {str(e)}"
@@ -154,15 +167,36 @@ def open_app(app_name):
 
 def take_screenshot():
     try:
-        view = get_context().getWindow().getDecorView().getRootView()
-        view.setDrawingCacheEnabled(True)
-        bitmap = view.getDrawingCache()
-        bitmap_bytes = bytearray(bitmap.getWidth() * bitmap.getHeight() * 4)
-        bitmap.copyPixelsToBuffer(bytearray(bitmap_bytes))
-        return base64.b64encode(bytes(bitmap_bytes)).decode()
+        from jnius import autoclass
+        context = get_context()
+
+        # Use DDMS/screencap via shell command
+        Runtime = autoclass('java.lang.Runtime')
+        process = Runtime.getRuntime().exec("screencap -p /sdcard/flowscript_screen.png")
+        process.waitFor()
+
+        # Read the file
+        FileInputStream = autoclass('java.io.FileInputStream')
+        fis = FileInputStream("/sdcard/flowscript_screen.png")
+        available = fis.available()
+        buf = bytearray(available)
+        fis.read(buf)
+        fis.close()
+
+        return base64.b64encode(bytes(buf)).decode()
+
     except Exception as e:
         print(f"Screenshot error: {e}")
-        return None
+        try:
+            view = get_context().getWindow().getDecorView().getRootView()
+            view.setDrawingCacheEnabled(True)
+            bitmap = view.getDrawingCache()
+            bitmap_bytes = bytearray(bitmap.getWidth() * bitmap.getHeight() * 4)
+            bitmap.copyPixelsToBuffer(bytearray(bitmap_bytes))
+            return base64.b64encode(bytes(bitmap_bytes)).decode()
+        except Exception as e2:
+            print(f"Fallback screenshot error: {e2}")
+            return None
 
 
 def get_accessibility_tree():
