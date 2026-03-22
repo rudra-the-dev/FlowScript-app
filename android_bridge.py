@@ -1,15 +1,7 @@
-from jnius import autoclass
 import requests
 import base64
 import io
 import time
-
-Context = autoclass('android.content.Context')
-Intent = autoclass('android.content.Intent')
-PythonActivity = autoclass('org.kivy.android.PythonActivity')
-SystemClock = autoclass('android.os.SystemClock')
-Instrumentation = autoclass('android.app.Instrumentation')
-MotionEvent = autoclass('android.view.MotionEvent')
 
 BACKEND_URL = "https://flowscript-backend-service.onrender.com"
 MAX_STEPS = 15
@@ -61,7 +53,8 @@ APP_MAP = {
 
 
 def get_context():
-    return PythonActivity.mActivity
+    from jnius import autoclass
+    return autoclass('org.kivy.android.PythonActivity').mActivity
 
 
 def open_app(app_name):
@@ -70,17 +63,36 @@ def open_app(app_name):
     if not package:
         return False, f"Could not find app: {app_name}"
     try:
-        context = get_context()
+        from jnius import autoclass
+        context = autoclass('org.kivy.android.PythonActivity').mActivity
+        Intent = autoclass('android.content.Intent')
+        Uri = autoclass('android.net.Uri')
+
+        intent = Intent()
+        intent.setAction(Intent.ACTION_MAIN)
+        intent.addCategory(Intent.CATEGORY_LAUNCHER)
+        intent.setPackage(package)
+        intent.addFlags(Intent.FLAG_ACTIVITY_NEW_TASK)
+        intent.addFlags(Intent.FLAG_ACTIVITY_RESET_TASK_IF_NEEDED)
+
         pm = context.getPackageManager()
+        activities = pm.queryIntentActivities(intent, 0)
+
+        if activities.size() > 0:
+            context.startActivity(intent)
+            time.sleep(2)
+            return True, f"Opened {app_name}"
+
         launch_intent = pm.getLaunchIntentForPackage(package)
         if launch_intent:
             launch_intent.addFlags(Intent.FLAG_ACTIVITY_NEW_TASK)
             context.startActivity(launch_intent)
             time.sleep(2)
             return True, f"Opened {app_name}"
+
         return False, f"App {app_name} not installed"
     except Exception as e:
-        return False, str(e)
+        return False, f"Error opening {app_name}: {str(e)}"
 
 
 def fuzzy_match_app(name):
@@ -163,6 +175,10 @@ def collect_nodes(node, elements):
 
 def perform_tap(x, y):
     try:
+        from jnius import autoclass
+        Instrumentation = autoclass('android.app.Instrumentation')
+        MotionEvent = autoclass('android.view.MotionEvent')
+        SystemClock = autoclass('android.os.SystemClock')
         inst = Instrumentation()
         down = SystemClock.uptimeMillis()
         inst.sendPointerSync(MotionEvent.obtain(down, down, MotionEvent.ACTION_DOWN, float(x), float(y), 0))
@@ -176,6 +192,8 @@ def perform_tap(x, y):
 
 def perform_type(text):
     try:
+        from jnius import autoclass
+        Instrumentation = autoclass('android.app.Instrumentation')
         Instrumentation().sendStringSync(text)
         return True
     except Exception as e:
