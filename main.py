@@ -156,7 +156,7 @@ class FlowScriptApp(App):
         )
         output_label.bind(size=output_label.setter('text_size'))
 
-        scroll = ScrollView(size_hint_y=0.45)
+        scroll = ScrollView(size_hint_y=0.45, do_scroll_x=True, do_scroll_y=True)
         self.output = Label(
             text='Press RUN to execute your FlowScript code',
             color=get_color_from_hex('#555570'),
@@ -164,7 +164,7 @@ class FlowScriptApp(App):
             halign='left',
             valign='top',
             markup=True,
-            size_hint_y=None,
+            size_hint=(None, None),
             padding=[dp(14), dp(8)]
         )
         self.output.bind(texture_size=self.output.setter('size'))
@@ -180,6 +180,16 @@ class FlowScriptApp(App):
         return self.root_layout
 
     def check_accessibility(self, dt):
+        try:
+            from android.permissions import request_permissions, Permission
+            request_permissions([
+                Permission.POST_NOTIFICATIONS,
+                Permission.WRITE_EXTERNAL_STORAGE,
+                Permission.READ_EXTERNAL_STORAGE,
+            ])
+        except:
+            pass
+
         if not is_accessibility_enabled():
             banner = PermissionBanner(on_enable=self.go_to_accessibility)
             self.root_layout.add_widget(banner, index=len(self.root_layout.children))
