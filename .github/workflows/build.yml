@@ -24,13 +24,10 @@ jobs:
           pip install buildozer cython virtualenv
 
       - name: Build APK
-        run: buildozer android debug 2>&1 | tee build.log || true
-
-      - name: Upload log
-        uses: actions/upload-artifact@v4
-        with:
-          name: build-log
-          path: build.log
+        run: |
+          buildozer android debug 2>&1 | tee /tmp/build.log || true
+          echo "=== LAST 200 LINES ==="
+          tail -200 /tmp/build.log | grep -v "License\|license\|TERMS\|Terms\|Android SDK\|You agree\|Google\|SHALL\|hereby\|pursuant\|jurisdiction\|warranty\|Warranty\|copyright\|Copyright\|intellectual\|provision\|agreement\|Agreement"
 
       - name: Upload APK
         uses: actions/upload-artifact@v4
