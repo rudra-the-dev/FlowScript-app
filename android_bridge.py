@@ -165,17 +165,21 @@ def open_app(app_name):
         return False, f"Error opening '{app_name}': {str(e)}"
 
 
+def notify_debug(message):
+    try:
+        send_notification(f"[FS] {message}")
+    except:
+        print(f"DEBUG: {message}")
+
+
 def take_screenshot():
     try:
+        notify_debug("Taking screenshot...")
         from jnius import autoclass
-        context = get_context()
-
-        # Use DDMS/screencap via shell command
         Runtime = autoclass('java.lang.Runtime')
         process = Runtime.getRuntime().exec("screencap -p /sdcard/flowscript_screen.png")
         process.waitFor()
 
-        # Read the file
         FileInputStream = autoclass('java.io.FileInputStream')
         fis = FileInputStream("/sdcard/flowscript_screen.png")
         available = fis.available()
@@ -183,19 +187,21 @@ def take_screenshot():
         fis.read(buf)
         fis.close()
 
+        notify_debug("Screenshot captured OK")
         return base64.b64encode(bytes(buf)).decode()
 
     except Exception as e:
-        print(f"Screenshot error: {e}")
+        notify_debug(f"Screenshot FAILED: {str(e)[:60]}")
         try:
             view = get_context().getWindow().getDecorView().getRootView()
             view.setDrawingCacheEnabled(True)
             bitmap = view.getDrawingCache()
             bitmap_bytes = bytearray(bitmap.getWidth() * bitmap.getHeight() * 4)
             bitmap.copyPixelsToBuffer(bytearray(bitmap_bytes))
+            notify_debug("Fallback screenshot OK")
             return base64.b64encode(bytes(bitmap_bytes)).decode()
         except Exception as e2:
-            print(f"Fallback screenshot error: {e2}")
+            notify_debug(f"Fallback FAILED: {str(e2)[:60]}")
             return None
 
 
@@ -328,14 +334,16 @@ def run_automation(task, on_needs_help=None):
     prev_expected = None
     step = 0
 
-    print(f"Automation started: {task}")
+    notify_debug(f"Automation started: {task[:40]}")
 
     while step < MAX_STEPS:
         screenshot = take_screenshot()
         if not screenshot:
+            notify_debug("STOPPED: Could not take screenshot")
             return False, "Could not take screenshot"
 
         tree = get_accessibility_tree()
+        notify_debug(f"Step {step+1}: Sending to backend ({len(tree)} elements)")
 
         try:
             response = requests.post(
@@ -353,17 +361,26 @@ def run_automation(task, on_needs_help=None):
                 timeout=30
             )
             data = response.json()
+            notify_debug(f"Backend responded: {data.get('status')} — {data.get('thought','')[:40]}")
+        except requests.exceptions.Timeout:
+            notify_debug("Backend TIMEOUT — no response in 30s")
+            return False, "Backend timed out"
+        except requests.exceptions.ConnectionError:
+            notify_debug("Backend CONNECTION ERROR — is server running?")
+            return False, "Could not connect to backend"
         except Exception as e:
+            notify_debug(f"Backend ERROR: {str(e)[:60]}")
             return False, f"Backend error: {e}"
 
         status = data.get("status")
         thought = data.get("thought", "")
-        print(f"Step {step + 1}: {thought}")
 
         if status == "done":
+            notify_debug("Task COMPLETED successfully")
             return True, "Task completed"
 
         if status in ["needs_help", "failed"]:
+            notify_debug(f"STOPPED: {thought[:60]}")
             if on_needs_help:
                 on_needs_help(thought)
             return False, thought
@@ -379,18 +396,28 @@ def run_automation(task, on_needs_help=None):
         step = data.get("step", step + 1)
 
         if action == "TAP":
-            perform_tap(x, y)
+            notify_debug(f"Tapping '{data.get('element_text','')}' at ({x},{y})")
+            success = perform_tap(x, y)
+            if not success:
+                notify_debug(f"TAP FAILED at ({x},{y})")
             history.append(f"Tapped '{data.get('element_text', '')}' at ({x},{y})")
+
         elif action == "TYPE":
-            perform_type(data.get("text", ""))
-            history.append(f"Typed: {data.get('text', '')}")
+            text = data.get("text", "")
+            notify_debug(f"Typing: {text[:40]}")
+            perform_type(text)
+            history.append(f"Typed: {text}")
+
         elif action == "SWIPE":
-            perform_swipe(data.get("direction", "up"))
-            history.append(f"Swiped {data.get('direction', 'up')}")
+            direction = data.get("direction", "up")
+            notify_debug(f"Swiping {direction}")
+            perform_swipe(direction)
+            history.append(f"Swiped {direction}")
 
         if len(history) > 6:
             history = history[-6:]
 
         time.sleep(delay_ms / 1000)
 
+    notify_debug(f"STOPPED: Reached max {MAX_STEPS} steps")
     return False, f"Task did not complete within {MAX_STEPS} steps"
