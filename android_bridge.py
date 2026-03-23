@@ -165,6 +165,35 @@ def open_app(app_name):
         return False, f"Error opening '{app_name}': {str(e)}"
 
 
+def start_foreground_service():
+    try:
+        from jnius import autoclass
+        context = get_context()
+        Intent = autoclass('android.content.Intent')
+        ForegroundService = autoclass('app.flowscript.FlowScriptForegroundService')
+        intent = Intent(context, ForegroundService)
+        if autoclass('android.os.Build').VERSION.SDK_INT >= 26:
+            context.startForegroundService(intent)
+        else:
+            context.startService(intent)
+        print("Foreground service started")
+    except Exception as e:
+        print(f"Foreground service error: {e}")
+
+
+def stop_foreground_service():
+    try:
+        from jnius import autoclass
+        context = get_context()
+        Intent = autoclass('android.content.Intent')
+        ForegroundService = autoclass('app.flowscript.FlowScriptForegroundService')
+        intent = Intent(context, ForegroundService)
+        context.stopService(intent)
+        print("Foreground service stopped")
+    except Exception as e:
+        print(f"Stop foreground service error: {e}")
+
+
 def notify_debug(message):
     try:
         send_notification(f"[FS] {message}")
@@ -176,33 +205,24 @@ def take_screenshot():
     try:
         notify_debug("Taking screenshot...")
         from jnius import autoclass
-        Runtime = autoclass('java.lang.Runtime')
-        process = Runtime.getRuntime().exec("screencap -p /sdcard/flowscript_screen.png")
-        process.waitFor()
+        context = get_context()
+        ScreenCapture = autoclass('app.flowscript.FlowScriptScreenCapture')
 
-        FileInputStream = autoclass('java.io.FileInputStream')
-        fis = FileInputStream("/sdcard/flowscript_screen.png")
-        available = fis.available()
-        buf = bytearray(available)
-        fis.read(buf)
-        fis.close()
+        if not ScreenCapture.hasPermission():
+            notify_debug("Screen capture permission not granted")
+            return None
+
+        img_bytes = ScreenCapture.takeScreenshot(context)
+        if img_bytes is None:
+            notify_debug("Screenshot returned null")
+            return None
 
         notify_debug("Screenshot captured OK")
-        return base64.b64encode(bytes(buf)).decode()
+        return base64.b64encode(bytes(img_bytes)).decode()
 
     except Exception as e:
         notify_debug(f"Screenshot FAILED: {str(e)[:60]}")
-        try:
-            view = get_context().getWindow().getDecorView().getRootView()
-            view.setDrawingCacheEnabled(True)
-            bitmap = view.getDrawingCache()
-            bitmap_bytes = bytearray(bitmap.getWidth() * bitmap.getHeight() * 4)
-            bitmap.copyPixelsToBuffer(bytearray(bitmap_bytes))
-            notify_debug("Fallback screenshot OK")
-            return base64.b64encode(bytes(bitmap_bytes)).decode()
-        except Exception as e2:
-            notify_debug(f"Fallback FAILED: {str(e2)[:60]}")
-            return None
+        return None
 
 
 def get_accessibility_tree():
@@ -312,15 +332,33 @@ def perform_swipe(direction="up"):
 def send_notification(message):
     try:
         from jnius import autoclass
-        Context = autoclass('android.content.Context')
-        NotificationCompat = autoclass('androidx.core.app.NotificationCompat')
         context = get_context()
-        builder = NotificationCompat.Builder(context, "flowscript")
+        Build = autoclass('android.os.Build')
+        NotificationManager = autoclass('android.app.NotificationManager')
+        Notification = autoclass('android.app.Notification')
+        NotificationBuilder = autoclass('android.app.Notification$Builder')
+        CHANNEL_ID = "flowscript"
+
+        if Build.VERSION.SDK_INT >= 26:
+            NotificationChannel = autoclass('android.app.NotificationChannel')
+            nm = context.getSystemService(context.NOTIFICATION_SERVICE)
+            channel = NotificationChannel(
+                CHANNEL_ID,
+                "FlowScript",
+                NotificationManager.IMPORTANCE_DEFAULT
+            )
+            nm.createNotificationChannel(channel)
+            builder = NotificationBuilder(context, CHANNEL_ID)
+        else:
+            builder = NotificationBuilder(context)
+
         builder.setContentTitle("FlowScript")
         builder.setContentText(message)
         builder.setSmallIcon(autoclass('android.R$drawable').ic_dialog_info)
-        builder.setPriority(NotificationCompat.PRIORITY_DEFAULT)
-        context.getSystemService(Context.NOTIFICATION_SERVICE).notify(1, builder.build())
+        builder.setAutoCancel(True)
+
+        nm = context.getSystemService(context.NOTIFICATION_SERVICE)
+        nm.notify(int(time.time()) % 10000, builder.build())
         return True
     except Exception as e:
         print(f"Notification error: {e}")
@@ -335,8 +373,10 @@ def run_automation(task, on_needs_help=None):
     step = 0
 
     notify_debug(f"Automation started: {task[:40]}")
+    start_foreground_service()
 
-    while step < MAX_STEPS:
+    try:
+        while step < MAX_STEPS:
         screenshot = take_screenshot()
         if not screenshot:
             notify_debug("STOPPED: Could not take screenshot")
@@ -364,12 +404,15 @@ def run_automation(task, on_needs_help=None):
             notify_debug(f"Backend responded: {data.get('status')} — {data.get('thought','')[:40]}")
         except requests.exceptions.Timeout:
             notify_debug("Backend TIMEOUT — no response in 30s")
+            stop_foreground_service()
             return False, "Backend timed out"
         except requests.exceptions.ConnectionError:
             notify_debug("Backend CONNECTION ERROR — is server running?")
+            stop_foreground_service()
             return False, "Could not connect to backend"
         except Exception as e:
             notify_debug(f"Backend ERROR: {str(e)[:60]}")
+            stop_foreground_service()
             return False, f"Backend error: {e}"
 
         status = data.get("status")
@@ -377,10 +420,12 @@ def run_automation(task, on_needs_help=None):
 
         if status == "done":
             notify_debug("Task COMPLETED successfully")
+            stop_foreground_service()
             return True, "Task completed"
 
         if status in ["needs_help", "failed"]:
             notify_debug(f"STOPPED: {thought[:60]}")
+            stop_foreground_service()
             if on_needs_help:
                 on_needs_help(thought)
             return False, thought
@@ -420,4 +465,10 @@ def run_automation(task, on_needs_help=None):
         time.sleep(delay_ms / 1000)
 
     notify_debug(f"STOPPED: Reached max {MAX_STEPS} steps")
+    stop_foreground_service()
     return False, f"Task did not complete within {MAX_STEPS} steps"
+
+    except Exception as e:
+        notify_debug(f"Automation crashed: {str(e)[:60]}")
+        stop_foreground_service()
+        return False, str(e)
