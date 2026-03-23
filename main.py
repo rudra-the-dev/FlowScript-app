@@ -17,6 +17,18 @@ from interpreter import Interpreter
 Window.clearcolor = get_color_from_hex('#0d0d0f')
 
 
+def request_screen_capture():
+    try:
+        from jnius import autoclass
+        ScreenCapture = autoclass('app.flowscript.FlowScriptScreenCapture')
+        activity = autoclass('org.kivy.android.PythonActivity').mActivity
+        ScreenCapture.requestPermission(activity)
+        return True
+    except Exception as e:
+        print(f"Screen capture request error: {e}")
+        return False
+
+
 def is_accessibility_enabled():
     try:
         from jnius import autoclass
@@ -194,6 +206,56 @@ class FlowScriptApp(App):
             banner = PermissionBanner(on_enable=self.go_to_accessibility)
             self.root_layout.add_widget(banner, index=len(self.root_layout.children))
             self.accessibility_banner = banner
+
+        self.check_screen_capture()
+
+    def check_screen_capture(self):
+        try:
+            from jnius import autoclass
+            ScreenCapture = autoclass('app.flowscript.FlowScriptScreenCapture')
+            if not ScreenCapture.hasPermission():
+                self.show_screen_capture_dialog()
+        except:
+            pass
+
+    def show_screen_capture_dialog(self):
+        content = BoxLayout(orientation='vertical', padding=dp(16), spacing=dp(12))
+        msg = Label(
+            text='[b]Screen capture needed[/b]\n\nFlowScript needs screen capture permission to automate other apps.\n\nTap Allow on the next screen.',
+            markup=True,
+            font_size=dp(13),
+            color=get_color_from_hex('#e8e8f0'),
+            halign='left',
+            valign='top'
+        )
+        msg.bind(size=msg.setter('text_size'))
+
+        allow_btn = Button(
+            text='Allow Screen Capture',
+            size_hint_y=None,
+            height=dp(44),
+            background_color=get_color_from_hex('#7c6af7'),
+            color=get_color_from_hex('#ffffff'),
+            bold=True
+        )
+
+        content.add_widget(msg)
+        content.add_widget(allow_btn)
+
+        popup = Popup(
+            title='Permission Required',
+            content=content,
+            size_hint=(0.88, 0.5),
+            background_color=get_color_from_hex('#0d0d1f'),
+            separator_color=get_color_from_hex('#7c6af7')
+        )
+
+        def on_allow(instance):
+            popup.dismiss()
+            request_screen_capture()
+
+        allow_btn.bind(on_press=on_allow)
+        popup.open()
 
     def go_to_accessibility(self):
         open_accessibility_settings()
