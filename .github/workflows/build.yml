@@ -1,48 +1,67 @@
 name: Build FlowScript APK
 
 on:
-  push:
-    branches: [ main ]
-  workflow_dispatch:
+push:
+branches: [ main ]
+workflow_dispatch:
 
 jobs:
-  build:
-    runs-on: ubuntu-22.04
+build:
+runs-on: ubuntu-22.04
 
-    steps:
-      - uses: actions/checkout@v4
+env:
+  ANDROID_HOME: $HOME/android-sdk
 
-      - name: Set up Python
-        uses: actions/setup-python@v5
-        with:
-          python-version: '3.10'
+steps:
+  - name: Checkout repository
+    uses: actions/checkout@v4
 
-      - name: Install dependencies
-        run: |
-          sudo apt-get update
-          sudo apt-get install -y git zip unzip openjdk-17-jdk python3-pip autoconf libtool pkg-config zlib1g-dev libncurses5-dev libncursesw5-dev libtinfo5 cmake libffi-dev libssl-dev
-          pip install buildozer cython virtualenv
+  - name: Set up Python
+    uses: actions/setup-python@v5
+    with:
+      python-version: '3.10'
 
-      - name: Build APK
-        run: |
-          buildozer android debug 2>&1 | tee /tmp/build.log || true
-          find /root/.buildozer -name "aidl" 2>/dev/null | head -5
-          find /home/runner/.buildozer -name "aidl" 2>/dev/null | head -5
-          AIDL=$(find /home/runner/.buildozer -name "aidl" 2>/dev/null | head -1)
-          if [ -z "$AIDL" ]; then
-            AIDL=$(find /root/.buildozer -name "aidl" 2>/dev/null | head -1)
-          fi
-          if [ ! -z "$AIDL" ]; then
-            echo "Found aidl at: $AIDL"
-            export PATH=$(dirname $AIDL):$PATH
-            buildozer android debug 2>&1 | tee /tmp/build2.log || true
-          fi
-          echo "=== LAST 100 LINES ==="
-          tail -100 /tmp/build2.log 2>/dev/null || tail -100 /tmp/build.log
+  - name: Install system dependencies
+    run: |
+      sudo apt-get update
+      sudo apt-get install -y \
+        git zip unzip openjdk-17-jdk python3-pip \
+        autoconf libtool pkg-config zlib1g-dev \
+        libncurses5-dev libncursesw5-dev libtinfo5 \
+        cmake libffi-dev libssl-dev wget
 
-      - name: Upload APK
-        uses: actions/upload-artifact@v4
-        with:
-          name: FlowScript-APK
-          path: bin/*.apk
-          if-no-files-found: ignore
+      pip install --upgrade pip
+      pip install buildozer cython virtualenv
+
+  - name: Setup Android SDK
+    run: |
+      mkdir -p $ANDROID_HOME/cmdline-tools
+
+      wget https://dl.google.com/android/repository/commandlinetools-linux-11076708_latest.zip -O cmdline-tools.zip
+      unzip cmdline-tools.zip -d $ANDROID_HOME/cmdline-tools
+      mv $ANDROID_HOME/cmdline-tools/cmdline-tools $ANDROID_HOME/cmdline-tools/latest
+
+      echo "$ANDROID_HOME/cmdline-tools/latest/bin" >> $GITHUB_PATH
+      echo "$ANDROID_HOME/platform-tools" >> $GITHUB_PATH
+
+      export PATH=$ANDROID_HOME/cmdline-tools/latest/bin:$ANDROID_HOME/platform-tools:$PATH
+
+      yes | sdkmanager --licenses
+
+      sdkmanager \
+        "platform-tools" \
+        "platforms;android-34" \
+        "build-tools;34.0.0"
+
+      echo "$ANDROID_HOME/build-tools/34.0.0" >> $GITHUB_PATH
+
+  - name: Build APK
+    run: |
+      buildozer android debug
+
+  - name: Upload APK
+    uses: actions/upload-artifact@v4
+    with:
+      name: FlowScript-APK
+      path: bin/*.apk
+      if-no-files-found: ignore
