@@ -36,19 +36,20 @@ jobs:
             cmake \
             libffi-dev \
             libssl-dev \
-            aid-tools
+            aid-tools  # Helps with the 'aidl' errors
           pip install --upgrade pip
           pip install buildozer cython virtualenv
 
       - name: Build with Buildozer
         run: |
+          # We remove '|| true' so the workflow actually fails if the build fails
           buildozer android debug 2>&1 | tee build.log
         continue-on-error: true 
 
-      - name: Debug Log
+      - name: Debug Log (on failure)
         if: always()
         run: |
-          echo "--- Error Trace ---"
+          echo "--- Last 50 lines of log ---"
           grep -i "error\|failed\|not found\|aidl" build.log | grep -v -i "license\|google\|terms\|you agree" | tail -n 50
 
       - name: Upload APK
