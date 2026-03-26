@@ -16,7 +16,7 @@ jobs:
         with:
           python-version: '3.10'
 
-      # 1. CACHE (Makes it 5x faster on 2nd run)
+      # CACHE: Keeps your 1GB Android SDK downloads so the next build is 5x faster
       - name: Cache Buildozer global directory
         uses: actions/cache@v4
         with:
@@ -36,10 +36,13 @@ jobs:
           pip install --upgrade pip
           pip install buildozer cython virtualenv
 
-      - name: Build with Buildozer (Multi-core)
+      - name: Build with Buildozer
         run: |
-          # The 'p4a.branch' and 'p4a.local_recipes' can speed up setup
-          # Using '2>&1 | tee' to see live progress
+          # FIX: Force-accept licenses and trigger SDK download manually
+          # This solves the "Aidl not found" and "build-tools not found" errors
+          yes | buildozer android sdk_update
+          
+          # Run the actual build
           buildozer android debug 2>&1 | tee build.log
         continue-on-error: true 
 
@@ -48,9 +51,10 @@ jobs:
         run: |
           echo "--- Error Trace ---"
           if [ -f build.log ]; then
+            # Filters out the long license text to show you the real Java/Python errors
             grep -i "error\|failed\|not found\|aidl" build.log | grep -v -i "license\|google\|terms\|you agree" | tail -n 50
           else
-            echo "Build log not found."
+            echo "Build log not found. The SDK update likely failed or timed out."
           fi
 
       - name: Upload APK
