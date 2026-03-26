@@ -1,25 +1,71 @@
-[app]
-title = FlowScript
-package.name = flowscript
-package.domain = app.flowscript
-source.dir = .
-source.include_exts = py,png,jpg,kv,atlas,java,xml
-version = 0.3
-requirements = python3==3.10.12,kivy==2.3.0,requests,certifi
-android.permissions = INTERNET,BIND_ACCESSIBILITY_SERVICE,FOREGROUND_SERVICE,FOREGROUND_SERVICE_DATA_SYNC,RECEIVE_BOOT_COMPLETED,POST_NOTIFICATIONS,READ_MEDIA_IMAGES
-android.api = 34
-android.minapi = 26
-android.sdk = 34
-android.ndk = 25b
-android.build_tools_version = 34.0.0
-android.archs = arm64-v8a,armeabi-v7a
-android.allow_backup = True
-android.add_src = app/FlowScriptService.java,app/FlowScriptForegroundService.java,app/FlowScriptScreenCapture.java
-android.add_res = res
-android.add_manifests = manifest_patch.xml
-orientation = portrait
-fullscreen = 0
+name: Build FlowScript APK
 
-[buildozer]
-log_level = 2
-warn_on_root = 1
+on:
+  push:
+    branches: [ main ]
+  workflow_dispatch:
+
+jobs:
+  build:
+    runs-on: ubuntu-22.04
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Set up Python
+        uses: actions/setup-python@v5
+        with:
+          python-version: '3.10'
+
+      - name: Cache Buildozer
+        uses: actions/cache@v4
+        with:
+          path: .buildozer
+          key: ${{ runner.os }}-buildozer-${{ hashFiles('buildozer.spec') }}
+          restore-keys: |
+            ${{ runner.os }}-buildozer-
+
+      - name: Install System Dependencies
+        run: |
+          sudo apt-get update
+          sudo DEBIAN_FRONTEND=noninteractive apt-get install -y \
+            build-essential git zip unzip python3-pip \
+            autoconf libtool pkg-config zlib1g-dev libncurses5-dev \
+            libncursesw5-dev libtinfo5 cmake libffi-dev libssl-dev \
+            libncurses5 libstdc++6
+          pip install --upgrade pip
+          pip install buildozer cython virtualenv
+
+      - name: Accept Android SDK Licenses
+        run: |
+          export JAVA_HOME=/usr/lib/jvm/temurin-17-jdk-amd64
+          export PATH=$JAVA_HOME/bin:$PATH
+          yes | /usr/local/lib/android/sdk/cmdline-tools/latest/bin/sdkmanager --licenses || true
+          yes | /usr/local/lib/android/sdk/cmdline-tools/latest/bin/sdkmanager \
+            "platforms;android-34" \
+            "build-tools;34.0.0" \
+            "platform-tools" || true
+
+      - name: Build with Buildozer
+        env:
+          JAVA_HOME: /usr/lib/jvm/temurin-17-jdk-amd64
+          ANDROID_SDK_ROOT: /usr/local/lib/android/sdk
+          ANDROID_HOME: /usr/local/lib/android/sdk
+          ANDROID_NDK_HOME: /usr/local/lib/android/sdk/ndk/27.3.13750724
+        run: |
+          export PATH=$JAVA_HOME/bin:$PATH
+          touch build.log
+          APP_ANDROID_ACCEPT_SDK_LICENSE=1 buildozer android debug 2>&1 | tee build.log
+        continue-on-error: true
+
+      - name: Debug Log
+        if: always()
+        run: |
+          echo "--- FULL LOG TAIL ---"
+          tail -n 200 build.log || echo "No build.log found"
+          echo "--- END LOG ---"
+
+      - name: Upload APK
+        uses: actions/upload-artifact@v4
+        with:
+          name: FlowScript-APK
+          path: bin/*.apk
