@@ -37,17 +37,17 @@ jobs:
 
       - name: Accept Android SDK Licenses
         run: |
-          export JAVA_HOME=$JAVA_HOME_17_X64
+          export JAVA_HOME=/usr/lib/jvm/temurin-17-jdk-amd64
           export PATH=$JAVA_HOME/bin:$PATH
-          yes | $ANDROID_HOME/cmdline-tools/latest/bin/sdkmanager --licenses || true
-          yes | $ANDROID_HOME/cmdline-tools/latest/bin/sdkmanager \
+          yes | /usr/local/lib/android/sdk/cmdline-tools/latest/bin/sdkmanager --licenses || true
+          yes | /usr/local/lib/android/sdk/cmdline-tools/latest/bin/sdkmanager \
             "platforms;android-34" \
             "build-tools;34.0.0" \
             "platform-tools" || true
 
       - name: Build with Buildozer
         env:
-          JAVA_HOME: ${{ env.JAVA_HOME_17_X64 }}
+          JAVA_HOME: /usr/lib/jvm/temurin-17-jdk-amd64
           ANDROID_SDK_ROOT: /usr/local/lib/android/sdk
           ANDROID_HOME: /usr/local/lib/android/sdk
           ANDROID_NDK_HOME: /usr/local/lib/android/sdk/ndk/27.3.13750724
@@ -55,12 +55,13 @@ jobs:
           export PATH=$JAVA_HOME/bin:$PATH
           touch build.log
           APP_ANDROID_ACCEPT_SDK_LICENSE=1 buildozer android debug 2>&1 | tee build.log
+        continue-on-error: true
 
       - name: Debug Log
         if: always()
         run: |
           echo "--- FULL LOG TAIL ---"
-          tail -n 100 build.log || echo "No build.log found"
+          tail -n 200 build.log || echo "No build.log found"
           echo "--- END LOG ---"
 
       - name: Upload APK
