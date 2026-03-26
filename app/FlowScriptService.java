@@ -1,13 +1,10 @@
-package app.flowscript;
+package app;
 
 import android.accessibilityservice.AccessibilityService;
 import android.accessibilityservice.AccessibilityServiceInfo;
 import android.view.accessibility.AccessibilityEvent;
-import android.view.accessibility.AccessibilityNodeInfo;
-import android.graphics.Rect;
 
 public class FlowScriptService extends AccessibilityService {
-
     private static FlowScriptService instance;
 
     public static FlowScriptService getInstance() {
@@ -26,15 +23,7 @@ public class FlowScriptService extends AccessibilityService {
         setServiceInfo(info);
     }
 
-    @Override
-    public void onAccessibilityEvent(AccessibilityEvent event) {}
-
-    @Override
-    public void onInterrupt() {}
-
-    @Override
-    public void onDestroy() {
-        instance = null;
-        super.onDestroy();
-    }
+    @Override public void onAccessibilityEvent(AccessibilityEvent event) {}
+    @Override public void onInterrupt() {}
+    @Override public void onDestroy() { instance = null; super.onDestroy(); }
 }
