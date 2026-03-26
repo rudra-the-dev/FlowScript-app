@@ -5,13 +5,8 @@ package.domain = app.flowscript
 source.dir = .
 source.include_exts = py,png,jpg,kv,atlas,java,xml
 version = 0.3
-
-# No spaces between requirements
 requirements = python3==3.10.12,kivy==2.3.0,requests,certifi
-
-# All permissions on one single line
 android.permissions = INTERNET,BIND_ACCESSIBILITY_SERVICE,FOREGROUND_SERVICE,FOREGROUND_SERVICE_DATA_SYNC,RECEIVE_BOOT_COMPLETED,POST_NOTIFICATIONS,READ_MEDIA_IMAGES
-
 android.api = 34
 android.minapi = 26
 android.sdk = 34
@@ -19,12 +14,9 @@ android.ndk = 25b
 android.build_tools_version = 34.0.0
 android.archs = arm64-v8a,armeabi-v7a
 android.allow_backup = True
-
-# Ensure these match the files in your app/ folder exactly
 android.add_src = app/FlowScriptService.java,app/FlowScriptForegroundService.java,app/FlowScriptScreenCapture.java
 android.add_res = res
 android.add_manifests = manifest_patch.xml
-
 orientation = portrait
 fullscreen = 0
 
