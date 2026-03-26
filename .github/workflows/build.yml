@@ -36,24 +36,30 @@ jobs:
             cmake \
             libffi-dev \
             libssl-dev \
-            aid-tools  # Helps with the 'aidl' errors
+            aid-tools
           pip install --upgrade pip
           pip install buildozer cython virtualenv
 
       - name: Build with Buildozer
         run: |
-          # We remove '|| true' so the workflow actually fails if the build fails
+          # We remove '|| true' here so the step results reflect the actual build status
+          # tee saves the output to build.log in the current directory
           buildozer android debug 2>&1 | tee build.log
         continue-on-error: true 
 
-      - name: Debug Log (on failure)
+      - name: Debug Log (Error Summary)
         if: always()
         run: |
-          echo "--- Last 50 lines of log ---"
-          grep -i "error\|failed\|not found\|aidl" build.log | grep -v -i "license\|google\|terms\|you agree" | tail -n 50
+          echo "--- Checking for Build Errors ---"
+          if [ -f build.log ]; then
+            grep -i "error\|failed\|not found\|aidl" build.log | grep -v -i "license\|google\|terms\|you agree" | tail -n 50
+          else
+            echo "Error: build.log was not created. Buildozer may have failed to start."
+          fi
 
       - name: Upload APK
         uses: actions/upload-artifact@v4
         with:
           name: FlowScript-APK
           path: bin/*.apk
+          if-no-files-found: warn
