@@ -16,8 +16,7 @@ jobs:
         with:
           python-version: '3.10'
 
-      # CACHE: Keeps your 1GB Android SDK downloads so the next build is 5x faster
-      - name: Cache Buildozer global directory
+      - name: Cache Buildozer
         uses: actions/cache@v4
         with:
           path: .buildozer
@@ -38,24 +37,28 @@ jobs:
 
       - name: Build with Buildozer
         run: |
-          # FIX: Force-accept licenses and trigger SDK download manually
-          # This solves the "Aidl not found" and "build-tools not found" errors
-          yes | buildozer android sdk_update
+          # Create the log file immediately so the next step doesn't fail
+          touch build.log
+          
+          # Force the SDK update and accept licenses
+          # We use '|| true' here so the workflow continues to the Debug Log if this fails
+          yes | buildozer android sdk_update 2>&1 | tee -a build.log || true
           
           # Run the actual build
-          buildozer android debug 2>&1 | tee build.log
+          buildozer android debug 2>&1 | tee -a build.log
         continue-on-error: true 
 
-      - name: Debug Log
+      - name: Debug Log (The Truth Teller)
         if: always()
         run: |
-          echo "--- Error Trace ---"
-          if [ -f build.log ]; then
-            # Filters out the long license text to show you the real Java/Python errors
-            grep -i "error\|failed\|not found\|aidl" build.log | grep -v -i "license\|google\|terms\|you agree" | tail -n 50
+          echo "--- ERROR SUMMARY START ---"
+          if [ -s build.log ]; then
+            # Show the last 100 lines to catch the specific Buildozer/Spec error
+            tail -n 100 build.log
           else
-            echo "Build log not found. The SDK update likely failed or timed out."
+            echo "The log is empty. This means the buildozer command itself is not found or pathing is broken."
           fi
+          echo "--- ERROR SUMMARY END ---"
 
       - name: Upload APK
         uses: actions/upload-artifact@v4
