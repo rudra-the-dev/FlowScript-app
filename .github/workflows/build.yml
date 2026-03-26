@@ -37,34 +37,27 @@ jobs:
 
       - name: Build with Buildozer
         run: |
+          # 1. Setup the workspace
           touch build.log
-          
-          # 1. Setup the Android SDK path manually to prevent 'Not Found' errors
           export ANDROID_SDK_ROOT=$HOME/.buildozer/android/platform/android-sdk
-          mkdir -p $ANDROID_SDK_ROOT
+          mkdir -p $ANDROID_SDK_ROOT/licenses
           
-          # 2. Force-Accept ALL licenses (including the tricky 37-rc2 one)
-          # We pipe 'yes' into the SDK update AND the build command
-          yes | buildozer android sdk_update 2>&1 | tee -a build.log || true
+          # 2. MANUALLY write the license file so Google stops asking
+          # This hex string is the "I Agree" for the current Android SDK license
+          echo -e "8933bad161af4178b1185d1a37fbf41ea5269c55\nd56f5187479451411efc2c510b108c4a93f54499\n24333f8a63b6825ea05962be0a7358a8d224620a" > $ANDROID_SDK_ROOT/licenses/android-sdk-license
           
-          # 3. Manually create the build-tools folder if it's missing
-          mkdir -p $ANDROID_SDK_ROOT/build-tools
-          
-          # 4. Run the actual build with the 'yes' pipe to handle any mid-build prompts
-          yes | buildozer android debug 2>&1 | tee -a build.log
+          # 3. Run Buildozer with the AUTO_ACCEPT flag
+          # We skip 'sdk_update' and go straight to debug to avoid the loop
+          APP_ANDROID_ACCEPT_SDK_LICENSE=1 buildozer android debug 2>&1 | tee -a build.log
         continue-on-error: true 
 
       - name: Debug Log
         if: always()
         run: |
-          echo "--- ERROR SUMMARY START ---"
-          if [ -s build.log ]; then
-            # We look for 'failed', 'error', or 'found' to see where the SDK stopped
-            grep -i "error\|failed\|not found\|aidl\|exception" build.log | grep -v -i "license\|google\|terms" | tail -n 50
-          else
-            echo "The log is empty. Check System Dependencies."
-          fi
-          echo "--- ERROR SUMMARY END ---"
+          echo "--- FULL LOG TAIL ---"
+          # No grep this time. Show us the last 100 lines of exactly what happened.
+          tail -n 100 build.log
+          echo "--- END LOG ---"
 
       - name: Upload APK
         uses: actions/upload-artifact@v4
