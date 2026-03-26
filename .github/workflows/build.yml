@@ -36,14 +36,15 @@ jobs:
             cmake \
             libffi-dev \
             libssl-dev \
-            aid-tools
+            libncurses5 \
+            libstdc++6
           pip install --upgrade pip
           pip install buildozer cython virtualenv
 
       - name: Build with Buildozer
         run: |
-          # We remove '|| true' here so the step results reflect the actual build status
-          # tee saves the output to build.log in the current directory
+          # We run the build and pipe output to build.log in the current directory
+          # 'tee' allows us to see the live logs in GitHub while saving them to a file
           buildozer android debug 2>&1 | tee build.log
         continue-on-error: true 
 
@@ -52,9 +53,10 @@ jobs:
         run: |
           echo "--- Checking for Build Errors ---"
           if [ -f build.log ]; then
+            # This filters out the license noise and shows only the actual failures
             grep -i "error\|failed\|not found\|aidl" build.log | grep -v -i "license\|google\|terms\|you agree" | tail -n 50
           else
-            echo "Error: build.log was not created. Buildozer may have failed to start."
+            echo "Error: build.log was not created. Check the 'Install System Dependencies' step for failures."
           fi
 
       - name: Upload APK
