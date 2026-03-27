@@ -13,7 +13,7 @@ android.ndk = 25.1.8937393
 android.build_tools_version = 34.0.0
 android.archs = arm64-v8a,armeabi-v7a
 android.allow_backup = True
-#android.add_src = app/FlowScriptService.java,app/FlowScriptForegroundService.java,app/FlowScriptScreenCapture.java
+
 android.add_res = res
 android.add_manifests = manifest_patch.xml
 android.sdk_path = /usr/local/lib/android/sdk
