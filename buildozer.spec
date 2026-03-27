@@ -5,7 +5,7 @@ package.domain = app.flowscript
 source.dir = .
 source.include_exts = py,png,jpg,kv,atlas,java,xml
 version = 0.3
-requirements = python3==3.10.12,kivy==2.2.1,requests,certifi,pyjinius
+requirements = python3==3.10.12,kivy==2.2.1,requests,certifi,pyjnius
 android.permissions = INTERNET,BIND_ACCESSIBILITY_SERVICE,FOREGROUND_SERVICE,FOREGROUND_SERVICE_DATA_SYNC,RECEIVE_BOOT_COMPLETED,POST_NOTIFICATIONS,READ_MEDIA_IMAGES
 android.api = 34
 android.minapi = 26
