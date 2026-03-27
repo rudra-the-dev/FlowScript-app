@@ -24,8 +24,10 @@ android.ndk = 25.1.8937393
 android.archs = arm64-v8a
 
 # ✅ IMPORTANT (prevents toolchain mismatch)
-p4a.branch = stable
 
+
+# ✅ KEEP THIS
+android.release_artifact = apk
 android.allow_backup = True
 
 # Keep your custom stuff
