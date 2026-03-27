@@ -142,7 +142,9 @@ class FlowScriptApp(App):
             output_label.bind(size=output_label.setter('text_size'))
 
             scroll = ScrollView(size_hint_y=0.45, do_scroll_x=True, do_scroll_y=True)
-            self.output = Label(
+            self.output=Label(
+
+
     text='Press RUN to execute your FlowScript code',
     color=get_color_from_hex('#555570'),
     font_size=dp(12),
@@ -153,7 +155,9 @@ class FlowScriptApp(App):
     padding=[dp(14), dp(8)]
 )
 
-self.output.bind(texture_size=lambda instance, value: setattr(instance, 'height', value[1]))
+            self.output.bind(texture_size=lambda instance, value: setattr(instance, 'height', value[1]))
+
+            self.output.bind(texture_size=lambda instance, value: setattr(instance, 'height', value[1]))
             scroll.add_widget(self.output)
 
             self.root_layout.add_widget(titlebar)
