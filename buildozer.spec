@@ -6,30 +6,33 @@ source.dir = .
 source.include_exts = py,png,jpg,kv,atlas,java,xml
 version = 0.3
 
-# 🔥 FIXED REQUIREMENTS
-requirements = python3==3.10.12,kivy==2.1.0,requests,certifi,pyjnius
+# ✅ STABLE COMBO
+requirements = python3==3.9.18,kivy==2.1.0,requests,certifi,pyjnius
 
-# 🔥 CLEAN PERMISSIONS (removed risky ones for now)
+# ✅ MINIMAL SAFE PERMISSIONS (add later if needed)
 android.permissions = INTERNET,BIND_ACCESSIBILITY_SERVICE,POST_NOTIFICATIONS
 
-# 🔥 STABLE ANDROID API
+# ✅ STABLE ANDROID LEVELS
 android.api = 31
 android.minapi = 21
 
-# 🔥 SAFE TOOLCHAIN
-android.ndk = 25.1.8937393
+# ✅ MATCH BUILD TOOLS
 android.build_tools_version = 33.0.0
+android.ndk = 25.1.8937393
 
-# 🔥 SINGLE ARCH (reduces crashes)
+# ✅ SINGLE ARCH (LESS CHAOS)
 android.archs = arm64-v8a
+
+# ✅ IMPORTANT (prevents toolchain mismatch)
+p4a.branch = stable
 
 android.allow_backup = True
 
-# Keep these (they're fine now)
+# Keep your custom stuff
 android.add_res = res
 android.add_manifests = manifest_patch.xml
 
-# SDK paths (unchanged)
+# SDK paths
 android.sdk_path = /usr/local/lib/android/sdk
 android.ndk_path = /usr/local/lib/android/sdk/ndk/25.1.8937393
 
