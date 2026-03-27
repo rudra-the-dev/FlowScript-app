@@ -134,7 +134,6 @@ def open_app(app_name):
         Uri = autoclass('android.net.Uri')
         pm = context.getPackageManager()
 
-        # Try 1 — getLaunchIntentForPackage
         launch_intent = pm.getLaunchIntentForPackage(package)
         if launch_intent:
             launch_intent.addFlags(Intent.FLAG_ACTIVITY_NEW_TASK)
@@ -142,7 +141,6 @@ def open_app(app_name):
             time.sleep(2)
             return True, f"Opened {app_name}"
 
-        # Try 2 — ACTION_MAIN with CATEGORY_LAUNCHER
         intent = Intent(Intent.ACTION_MAIN)
         intent.addCategory(Intent.CATEGORY_LAUNCHER)
         intent.setPackage(package)
@@ -154,7 +152,6 @@ def open_app(app_name):
         except:
             pass
 
-        # Try 3 — Play Store deep link as last resort
         store_intent = Intent(Intent.ACTION_VIEW)
         store_intent.setData(Uri.parse(f"market://details?id={package}"))
         store_intent.addFlags(Intent.FLAG_ACTIVITY_NEW_TASK)
@@ -335,7 +332,6 @@ def send_notification(message):
         context = get_context()
         Build = autoclass('android.os.Build')
         NotificationManager = autoclass('android.app.NotificationManager')
-        Notification = autoclass('android.app.Notification')
         NotificationBuilder = autoclass('android.app.Notification$Builder')
         CHANNEL_ID = "flowscript"
 
@@ -377,96 +373,96 @@ def run_automation(task, on_needs_help=None):
 
     try:
         while step < MAX_STEPS:
-        screenshot = take_screenshot()
-        if not screenshot:
-            notify_debug("STOPPED: Could not take screenshot")
-            return False, "Could not take screenshot"
+            screenshot = take_screenshot()
+            if not screenshot:
+                notify_debug("STOPPED: Could not take screenshot")
+                return False, "Could not take screenshot"
 
-        tree = get_accessibility_tree()
-        notify_debug(f"Step {step+1}: Sending to backend ({len(tree)} elements)")
+            tree = get_accessibility_tree()
+            notify_debug(f"Step {step+1}: Sending to backend ({len(tree)} elements)")
 
-        try:
-            response = requests.post(
-                f"{BACKEND_URL}/vision/next-action",
-                json={
-                    "screenshot": screenshot,
-                    "task": task,
-                    "history": history,
-                    "accessibility_tree": tree,
-                    "failure_counts": failure_counts,
-                    "prev_elements": prev_elements,
-                    "prev_expected": prev_expected,
-                    "step": step
-                },
-                timeout=30
-            )
-            data = response.json()
-            notify_debug(f"Backend responded: {data.get('status')} — {data.get('thought','')[:40]}")
-        except requests.exceptions.Timeout:
-            notify_debug("Backend TIMEOUT — no response in 30s")
-            stop_foreground_service()
-            return False, "Backend timed out"
-        except requests.exceptions.ConnectionError:
-            notify_debug("Backend CONNECTION ERROR — is server running?")
-            stop_foreground_service()
-            return False, "Could not connect to backend"
-        except Exception as e:
-            notify_debug(f"Backend ERROR: {str(e)[:60]}")
-            stop_foreground_service()
-            return False, f"Backend error: {e}"
+            try:
+                response = requests.post(
+                    f"{BACKEND_URL}/vision/next-action",
+                    json={
+                        "screenshot": screenshot,
+                        "task": task,
+                        "history": history,
+                        "accessibility_tree": tree,
+                        "failure_counts": failure_counts,
+                        "prev_elements": prev_elements,
+                        "prev_expected": prev_expected,
+                        "step": step
+                    },
+                    timeout=30
+                )
+                data = response.json()
+                notify_debug(f"Backend responded: {data.get('status')} — {data.get('thought','')[:40]}")
+            except requests.exceptions.Timeout:
+                notify_debug("Backend TIMEOUT — no response in 30s")
+                stop_foreground_service()
+                return False, "Backend timed out"
+            except requests.exceptions.ConnectionError:
+                notify_debug("Backend CONNECTION ERROR — is server running?")
+                stop_foreground_service()
+                return False, "Could not connect to backend"
+            except Exception as e:
+                notify_debug(f"Backend ERROR: {str(e)[:60]}")
+                stop_foreground_service()
+                return False, f"Backend error: {e}"
 
-        status = data.get("status")
-        thought = data.get("thought", "")
+            status = data.get("status")
+            thought = data.get("thought", "")
 
-        if status == "done":
-            notify_debug("Task COMPLETED successfully")
-            stop_foreground_service()
-            return True, "Task completed"
+            if status == "done":
+                notify_debug("Task COMPLETED successfully")
+                stop_foreground_service()
+                return True, "Task completed"
 
-        if status in ["needs_help", "failed"]:
-            notify_debug(f"STOPPED: {thought[:60]}")
-            stop_foreground_service()
-            if on_needs_help:
-                on_needs_help(thought)
-            return False, thought
+            if status in ["needs_help", "failed"]:
+                notify_debug(f"STOPPED: {thought[:60]}")
+                stop_foreground_service()
+                if on_needs_help:
+                    on_needs_help(thought)
+                return False, thought
 
-        action = data.get("action")
-        x = data.get("x", 0)
-        y = data.get("y", 0)
-        delay_ms = data.get("time_delay", 600)
+            action = data.get("action")
+            x = data.get("x", 0)
+            y = data.get("y", 0)
+            delay_ms = data.get("time_delay", 600)
 
-        prev_elements = data.get("prev_elements", [])
-        prev_expected = data.get("prev_expected")
-        failure_counts = data.get("failure_counts", failure_counts)
-        step = data.get("step", step + 1)
+            prev_elements = data.get("prev_elements", [])
+            prev_expected = data.get("prev_expected")
+            failure_counts = data.get("failure_counts", failure_counts)
+            step = data.get("step", step + 1)
 
-        if action == "TAP":
-            notify_debug(f"Tapping '{data.get('element_text','')}' at ({x},{y})")
-            success = perform_tap(x, y)
-            if not success:
-                notify_debug(f"TAP FAILED at ({x},{y})")
-            history.append(f"Tapped '{data.get('element_text', '')}' at ({x},{y})")
+            if action == "TAP":
+                notify_debug(f"Tapping '{data.get('element_text','')}' at ({x},{y})")
+                success = perform_tap(x, y)
+                if not success:
+                    notify_debug(f"TAP FAILED at ({x},{y})")
+                history.append(f"Tapped '{data.get('element_text', '')}' at ({x},{y})")
 
-        elif action == "TYPE":
-            text = data.get("text", "")
-            notify_debug(f"Typing: {text[:40]}")
-            perform_type(text)
-            history.append(f"Typed: {text}")
+            elif action == "TYPE":
+                text = data.get("text", "")
+                notify_debug(f"Typing: {text[:40]}")
+                perform_type(text)
+                history.append(f"Typed: {text}")
 
-        elif action == "SWIPE":
-            direction = data.get("direction", "up")
-            notify_debug(f"Swiping {direction}")
-            perform_swipe(direction)
-            history.append(f"Swiped {direction}")
+            elif action == "SWIPE":
+                direction = data.get("direction", "up")
+                notify_debug(f"Swiping {direction}")
+                perform_swipe(direction)
+                history.append(f"Swiped {direction}")
 
-        if len(history) > 6:
-            history = history[-6:]
+            if len(history) > 6:
+                history = history[-6:]
 
-        time.sleep(delay_ms / 1000)
+            time.sleep(delay_ms / 1000)
 
-    notify_debug(f"STOPPED: Reached max {MAX_STEPS} steps")
-    stop_foreground_service()
-    return False, f"Task did not complete within {MAX_STEPS} steps"
+        notify_debug(f"STOPPED: Reached max {MAX_STEPS} steps")
+        stop_foreground_service()
+        return False, f"Task did not complete within {MAX_STEPS} steps"
 
     except Exception as e:
         notify_debug(f"Automation crashed: {str(e)[:60]}")
