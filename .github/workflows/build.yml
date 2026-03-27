@@ -18,34 +18,34 @@ jobs:
       - name: Checkout
         uses: actions/checkout@v4
 
-      # 💣 Clean everything (no cursed cache)
+      # 💣 CLEAN EVERYTHING (YES AGAIN)
       - name: Clean environment
         run: |
           rm -rf .buildozer
           rm -rf ~/.buildozer
 
-      # ✅ Correct Python (matches buildozer.spec)
+      # ✅ Python (must match buildozer.spec)
       - name: Set up Python
         uses: actions/setup-python@v5
         with:
           python-version: '3.9'
 
-      # ⚙️ Install dependencies
-      - name: Install system dependencies
+      # ⚙️ Install system deps
+      - name: Install dependencies
         run: |
           sudo apt-get update
           sudo apt-get install -y \
-            build-essential git zip unzip \
+            build-essential git zip unzip wget \
             autoconf libtool pkg-config \
             zlib1g-dev libncurses5-dev \
             libncursesw5-dev libtinfo5 \
             cmake libffi-dev libssl-dev \
-            libstdc++6 wget unzip
+            libstdc++6
 
           pip install --upgrade pip
           pip install buildozer cython virtualenv
 
-      # 📦 Install Android SDK properly (no assumptions)
+      # 📦 Install Android SDK (properly)
       - name: Install Android SDK
         run: |
           mkdir -p $ANDROID_SDK_ROOT/cmdline-tools
@@ -65,19 +65,30 @@ jobs:
             "build-tools;33.0.0" \
             "ndk;25.1.8937393"
 
-      # 🚀 Build APK (force APK, not AAB nonsense)
+      # 🔥 CRITICAL FIX (your actual bug)
+      - name: Fix sdkmanager path
+        run: |
+          mkdir -p /usr/local/lib/android/sdk/tools/bin
+
+          ln -sf /usr/local/lib/android/sdk/cmdline-tools/latest/bin/sdkmanager \
+            /usr/local/lib/android/sdk/tools/bin/sdkmanager
+
+          ln -sf /usr/local/lib/android/sdk/cmdline-tools/latest/bin/avdmanager \
+            /usr/local/lib/android/sdk/tools/bin/avdmanager
+
+      # 🚀 Build APK
       - name: Build APK
         run: |
           buildozer android debug 2>&1 | tee build.log
 
-      # 📜 Show logs ALWAYS (even if build fails)
+      # 📜 Always show logs
       - name: Show logs
         if: always()
         run: |
           echo "===== LAST 200 LINES ====="
-          tail -n 200 build.log || echo "No log file found"
+          tail -n 200 build.log || echo "No logs found"
 
-      # 📦 Upload APK (only if success)
+      # 📦 Upload APK
       - name: Upload APK
         if: success()
         uses: actions/upload-artifact@v4
@@ -86,7 +97,7 @@ jobs:
           path: bin/*.apk
 
       # 📜 Upload full logs
-      - name: Upload build log
+      - name: Upload logs
         if: always()
         uses: actions/upload-artifact@v4
         with:
