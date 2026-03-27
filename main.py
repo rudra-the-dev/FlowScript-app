@@ -155,7 +155,7 @@ class FlowScriptApp(App):
             self.root_layout.add_widget(output_label)
             self.root_layout.add_widget(scroll)
 
-            Clock.schedule_once(self.check_accessibility, 1)
+            Clock.schedule_once(self.check_accessibility, 6)
             return self.root_layout
 
         except Exception:
