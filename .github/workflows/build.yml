@@ -8,26 +8,23 @@ on:
 jobs:
   build:
     runs-on: ubuntu-22.04
+
     steps:
       - uses: actions/checkout@v4
 
-      - name: Clear Buildozer Cache
+      # 🔥 Clean everything (no cache corruption)
+      - name: Clean previous builds
         run: |
           rm -rf .buildozer
+          rm -rf ~/.buildozer
 
+      # ✅ Match Python with buildozer.spec
       - name: Set up Python
         uses: actions/setup-python@v5
         with:
-          python-version: '3.10'
+          python-version: '3.9'
 
-      - name: Cache Buildozer
-        uses: actions/cache@v4
-        with:
-          path: .buildozer
-          key: ${{ runner.os }}-buildozer-${{ hashFiles('buildozer.spec') }}
-          restore-keys: |
-            ${{ runner.os }}-buildozer-
-
+      # ⚡ Install dependencies
       - name: Install System Dependencies
         run: |
           sudo apt-get update
@@ -36,26 +33,33 @@ jobs:
             autoconf libtool pkg-config zlib1g-dev libncurses5-dev \
             libncursesw5-dev libtinfo5 cmake libffi-dev libssl-dev \
             libncurses5 libstdc++6
+
           pip install --upgrade pip
           pip install buildozer cython virtualenv
 
-      - name: Accept Android SDK Licenses
+      # ✅ Install correct Android SDK + Build Tools
+      - name: Install Android SDK
         run: |
           export JAVA_HOME=/usr/lib/jvm/temurin-17-jdk-amd64
           export PATH=$JAVA_HOME/bin:$PATH
+
           yes | /usr/local/lib/android/sdk/cmdline-tools/latest/bin/sdkmanager --licenses || true
+
           yes | /usr/local/lib/android/sdk/cmdline-tools/latest/bin/sdkmanager \
-            "platforms;android-34" \
-            "build-tools;34.0.0" \
+            "platforms;android-31" \
+            "build-tools;33.0.0" \
             "platform-tools" || true
 
-      - name: Install NDK 25b
+      # ✅ Install matching NDK
+      - name: Install Android NDK
         run: |
           export JAVA_HOME=/usr/lib/jvm/temurin-17-jdk-amd64
           export PATH=$JAVA_HOME/bin:$PATH
+
           yes | /usr/local/lib/android/sdk/cmdline-tools/latest/bin/sdkmanager \
             "ndk;25.1.8937393" || true
 
+      # 🔧 Fix sdkmanager path (Buildozer being ancient)
       - name: Fix sdkmanager path
         run: |
           mkdir -p /usr/local/lib/android/sdk/tools/bin
@@ -64,7 +68,8 @@ jobs:
           ln -sf /usr/local/lib/android/sdk/cmdline-tools/latest/bin/avdmanager \
             /usr/local/lib/android/sdk/tools/bin/avdmanager
 
-      - name: Build with Buildozer
+      # 🚀 Build APK
+      - name: Build APK with Buildozer
         env:
           JAVA_HOME: /usr/lib/jvm/temurin-17-jdk-amd64
           ANDROID_SDK_ROOT: /usr/local/lib/android/sdk
@@ -72,26 +77,18 @@ jobs:
           ANDROID_NDK_HOME: /usr/local/lib/android/sdk/ndk/25.1.8937393
         run: |
           export PATH=$JAVA_HOME/bin:$PATH
-          touch build.log
-          APP_ANDROID_ACCEPT_SDK_LICENSE=1 buildozer android debug 2>&1 | tee build.log
-        continue-on-error: true
+          buildozer android debug
 
-      - name: Debug Log
-        if: always()
-        run: |
-          echo "--- FULL LOG TAIL ---"
-          tail -n 500 build.log || echo "No build.log found"
-          echo "--- END LOG ---"
-
-      - name: Upload Full Log
-        if: always()
-        uses: actions/upload-artifact@v4
-        with:
-          name: build-logs
-          path: build.log
-
+      # 📦 Upload APK
       - name: Upload APK
         uses: actions/upload-artifact@v4
         with:
           name: FlowScript-APK
           path: bin/*.apk
+
+      # 📜 Upload logs if build fails
+      - name: Upload Logs (if failed)
+        if: failure()
+        run: |
+          echo "Build failed. Dumping logs..."
+          tail -n 500 .buildozer/android/platform/build-*/build.log || true
