@@ -7,7 +7,7 @@ source.include_exts = py,png,jpg,kv,atlas,java,xml
 version = 0.3
 
 # ✅ STABLE COMBO
-requirements = python3==3.9.18,kivy==2.1.0,requests,certifi,pyjnius==1.5.0
+requirements = python3==3.9.18,kivy==2.1.0,cython==0.29.33,pyjnius==1.5.0,requests,certifi
 
 # ✅ MINIMAL SAFE PERMISSIONS (add later if needed)
 android.permissions = INTERNET,BIND_ACCESSIBILITY_SERVICE,POST_NOTIFICATIONS
