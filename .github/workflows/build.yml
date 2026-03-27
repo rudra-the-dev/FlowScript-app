@@ -45,12 +45,12 @@ jobs:
             "build-tools;34.0.0" \
             "platform-tools" || true
 
-      - name: Install NDK 23
+      - name: Install NDK 25b
         run: |
           export JAVA_HOME=/usr/lib/jvm/temurin-17-jdk-amd64
           export PATH=$JAVA_HOME/bin:$PATH
           yes | /usr/local/lib/android/sdk/cmdline-tools/latest/bin/sdkmanager \
-            "ndk;23.1.7779620" || true
+            "ndk;25.1.8937393" || true
 
       - name: Fix sdkmanager path
         run: |
@@ -65,7 +65,7 @@ jobs:
           JAVA_HOME: /usr/lib/jvm/temurin-17-jdk-amd64
           ANDROID_SDK_ROOT: /usr/local/lib/android/sdk
           ANDROID_HOME: /usr/local/lib/android/sdk
-          ANDROID_NDK_HOME: /usr/local/lib/android/sdk/ndk/23.1.7779620
+          ANDROID_NDK_HOME: /usr/local/lib/android/sdk/ndk/25.1.8937393
         run: |
           export PATH=$JAVA_HOME/bin:$PATH
           touch build.log
