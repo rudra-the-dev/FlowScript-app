@@ -4,40 +4,17 @@ package.name = flowscript
 package.domain = app.flowscript
 source.dir = .
 source.include_exts = py,png,jpg,kv,atlas,java,xml
-version = 0.3
-
-# ✅ STABLE COMBO
-requirements = python3==3.9.18,kivy==2.1.0,cython==0.29.33,pyjnius==1.5.0,requests,certifi
-
-# ✅ MINIMAL SAFE PERMISSIONS (add later if needed)
+version = 0.4
+requirements = python3,kivy==2.1.0,requests
 android.permissions = INTERNET,BIND_ACCESSIBILITY_SERVICE,POST_NOTIFICATIONS
-
-# ✅ STABLE ANDROID LEVELS
 android.api = 31
 android.minapi = 21
-
-# ✅ MATCH BUILD TOOLS
+android.ndk = 25b
 android.build_tools_version = 33.0.0
-android.ndk = 25.1.8937393
-
-# ✅ SINGLE ARCH (LESS CHAOS)
 android.archs = arm64-v8a
-
-# ✅ IMPORTANT (prevents toolchain mismatch)
-
-
-# ✅ KEEP THIS
-android.release_artifact = apk
 android.allow_backup = True
-
-# Keep your custom stuff
 android.add_res = res
 android.add_manifests = manifest_patch.xml
-
-# SDK paths
-android.sdk_path = /usr/local/lib/android/sdk
-android.ndk_path = /usr/local/lib/android/sdk/ndk/25.1.8937393
-
 orientation = portrait
 fullscreen = 0
 
