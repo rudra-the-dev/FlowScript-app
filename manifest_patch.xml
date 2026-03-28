@@ -2,7 +2,7 @@
 <manifest xmlns:android="http://schemas.android.com/apk/res/android">
     <application>
         <service
-            android:name="app.FlowScriptService"
+            android:name="app.flowscript.FlowScriptService"
             android:permission="android.permission.BIND_ACCESSIBILITY_SERVICE"
             android:exported="true">
             <intent-filter>
@@ -14,10 +14,9 @@
         </service>
 
         <service
-            android:name="app.FlowScriptForegroundService"
+            android:name="app.flowscript.FlowScriptForegroundService"
             android:enabled="true"
             android:exported="false"
             android:foregroundServiceType="dataSync" />
-
     </application>
 </manifest>
