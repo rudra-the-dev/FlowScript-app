@@ -1,49 +1,20 @@
-name: Build FlowScript APK
-
 on:
   push:
     branches: [ main ]
-  workflow_dispatch:
 
 jobs:
   build:
-    runs-on: ubuntu-22.04
+    runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v4
-
-      - uses: actions/setup-python@v5
-        with:
-          python-version: '3.11'
-
-      - name: Install dependencies
-        run: |
-          sudo apt-get update
-          sudo apt-get install -y git zip unzip openjdk-17-jdk python3-pip autoconf libtool pkg-config zlib1g-dev libncurses5-dev libncursesw5-dev libtinfo5 cmake libffi-dev libssl-dev
-          pip install --upgrade buildozer cython virtualenv 
-
-      - name: Manual SDK Tools Setup
-        run: |
-          SDK_PATH=$HOME/.buildozer/android/platform/android-sdk
-          mkdir -p $SDK_PATH/cmdline-tools
-          wget https://dl.google.com/android/repository/commandlinetools-linux-11076708_latest.zip
-          unzip commandlinetools-linux-11076708_latest.zip
-          mv cmdline-tools latest
-          mkdir -p $SDK_PATH/cmdline-tools/latest
-          mv latest/* $SDK_PATH/cmdline-tools/latest/
-          yes | $SDK_PATH/cmdline-tools/latest/bin/sdkmanager --sdk_root=$SDK_PATH --licenses || true
-
       - name: Build APK
-        run: buildozer android debug 2>&1 | tee build.log
+        uses: digreatbrian/buildozer-action@v2
+        with:
+          python-version: 3.8
+          buildozer-cmd: buildozer -v android debug
 
-      - name: Upload APK
+      - name: Upload artifacts
         uses: actions/upload-artifact@v4
         with:
-          name: FlowScript-APK
-          path: bin/*.apk
-
-      - name: Upload log
-        if: always()
-        uses: actions/upload-artifact@v4
-        with:
-          name: build-log
-          path: build.log
+          name: package
+          path: ./bin/*.apk
