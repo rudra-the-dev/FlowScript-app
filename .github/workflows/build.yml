@@ -13,7 +13,7 @@ jobs:
 
       - uses: actions/setup-python@v5
         with:
-          python-version: '3.11' # Upgraded for better tool compatibility
+          python-version: '3.11'
 
       - name: Install dependencies
         run: |
@@ -21,15 +21,18 @@ jobs:
           sudo apt-get install -y git zip unzip openjdk-17-jdk python3-pip autoconf libtool pkg-config zlib1g-dev libncurses5-dev libncursesw5-dev libtinfo5 cmake libffi-dev libssl-dev
           pip install --upgrade buildozer cython virtualenv 
 
-      - name: Pre-accept Buildozer SDK licenses
+      - name: Manual SDK Tools Setup
         run: |
-          # Create the directory where Buildozer expects the SDK to avoid path errors
-          mkdir -p $HOME/.buildozer/android/platform/android-sdk/cmdline-tools/latest/bin
-          # Force accept all licenses within the Buildozer SDK path
-          yes | sdkmanager --sdk_root=$HOME/.buildozer/android/platform/android-sdk --licenses || true
+          SDK_PATH=$HOME/.buildozer/android/platform/android-sdk
+          mkdir -p $SDK_PATH/cmdline-tools
+          wget https://dl.google.com/android/repository/commandlinetools-linux-11076708_latest.zip
+          unzip commandlinetools-linux-11076708_latest.zip
+          mv cmdline-tools latest
+          mkdir -p $SDK_PATH/cmdline-tools/latest
+          mv latest/* $SDK_PATH/cmdline-tools/latest/
+          yes | $SDK_PATH/cmdline-tools/latest/bin/sdkmanager --sdk_root=$SDK_PATH --licenses || true
 
       - name: Build APK
-        # Removed "|| true" to ensure the workflow fails if the build actually fails
         run: buildozer android debug 2>&1 | tee build.log
 
       - name: Upload APK
@@ -37,7 +40,6 @@ jobs:
         with:
           name: FlowScript-APK
           path: bin/*.apk
-          if-no-files-found: warn
 
       - name: Upload log
         if: always()
