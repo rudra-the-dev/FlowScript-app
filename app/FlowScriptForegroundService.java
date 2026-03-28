@@ -1,4 +1,4 @@
-package app;
+package app.flowscript; // Match buildozer.spec
 
 import android.app.Notification;
 import android.app.NotificationChannel;
@@ -35,16 +35,6 @@ public class FlowScriptForegroundService extends Service {
     }
 
     @Override public IBinder onBind(Intent intent) { return null; }
-
-    @Override
-    public void onDestroy() {
-        if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.N) {
-            stopForeground(STOP_FOREGROUND_REMOVE);
-        } else {
-            stopForeground(true);
-        }
-        super.onDestroy();
-    }
 
     private void createNotificationChannel() {
         if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.O) {
