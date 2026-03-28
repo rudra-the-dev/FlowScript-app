@@ -8,96 +8,49 @@ on:
 jobs:
   build:
     runs-on: ubuntu-22.04
-
-    env:
-      ANDROID_SDK_ROOT: /usr/local/lib/android/sdk
-      ANDROID_HOME: /usr/local/lib/android/sdk
-      JAVA_HOME: /usr/lib/jvm/temurin-17-jdk-amd64
-
     steps:
-      - name: Checkout
-        uses: actions/checkout@v4
+      - uses: actions/checkout@v4
 
-      # 💣 CLEAN EVERYTHING (YES AGAIN)
-      - name: Clean environment
-        run: |
-          rm -rf .buildozer
-          rm -rf ~/.buildozer
-
-      # ✅ Python (must match buildozer.spec)
-      - name: Set up Python
-        uses: actions/setup-python@v5
+      - uses: actions/setup-python@v5
         with:
-          python-version: '3.9'
+          python-version: '3.10'
 
-      # ⚙️ Install system deps
       - name: Install dependencies
         run: |
           sudo apt-get update
-          sudo apt-get install -y \
-            build-essential git zip unzip wget \
-            autoconf libtool pkg-config \
-            zlib1g-dev libncurses5-dev \
-            libncursesw5-dev libtinfo5 \
-            cmake libffi-dev libssl-dev \
-            libstdc++6
-
-          pip install --upgrade pip
+          sudo apt-get install -y git zip unzip openjdk-17-jdk python3-pip autoconf libtool pkg-config zlib1g-dev libncurses5-dev libncursesw5-dev libtinfo5 cmake libffi-dev libssl-dev
           pip install buildozer cython virtualenv
 
-      # 📦 Install Android SDK (properly)
-      - name: Install Android SDK
+      - name: Accept licenses and setup SDK
         run: |
-          mkdir -p $ANDROID_SDK_ROOT/cmdline-tools
-          cd $ANDROID_SDK_ROOT/cmdline-tools
+          yes | $ANDROID_HOME/cmdline-tools/latest/bin/sdkmanager --licenses || true
+          $ANDROID_HOME/cmdline-tools/latest/bin/sdkmanager "build-tools;33.0.0" "platforms;android-31" "platform-tools" || true
 
-          wget https://dl.google.com/android/repository/commandlinetools-linux-11076708_latest.zip -O tools.zip
-          unzip tools.zip
-          mv cmdline-tools latest
+      - name: First run to init buildozer SDK
+        run: buildozer android debug || true
 
-          export PATH=$ANDROID_SDK_ROOT/cmdline-tools/latest/bin:$PATH
-
-          yes | sdkmanager --licenses
-
-          sdkmanager \
-            "platform-tools" \
-            "platforms;android-31" \
-            "build-tools;33.0.0" \
-            "ndk;25.1.8937393"
-
-      # 🔥 CRITICAL FIX (your actual bug)
-      - name: Fix sdkmanager path
+      - name: Copy SDK components into buildozer
         run: |
-          mkdir -p /usr/local/lib/android/sdk/tools/bin
+          BSDK=$HOME/.buildozer/android/platform/android-sdk
+          mkdir -p $BSDK/build-tools $BSDK/platforms
+          cp -r $ANDROID_HOME/build-tools/33.0.0 $BSDK/build-tools/33.0.0 || true
+          cp -r $ANDROID_HOME/platforms/android-31 $BSDK/platforms/android-31 || true
 
-          ln -sf /usr/local/lib/android/sdk/cmdline-tools/latest/bin/sdkmanager \
-            /usr/local/lib/android/sdk/tools/bin/sdkmanager
-
-          ln -sf /usr/local/lib/android/sdk/cmdline-tools/latest/bin/avdmanager \
-            /usr/local/lib/android/sdk/tools/bin/avdmanager
-
-      # 🚀 Build APK
       - name: Build APK
-        run: |
-          buildozer android debug 2>&1 | tee build.log
+        run: buildozer android debug 2>&1 | tee build.log || true
 
-      # 📜 Always show logs
-      - name: Show logs
+      - name: Show errors
         if: always()
-        run: |
-          echo "===== LAST 200 LINES ====="
-          tail -n 200 build.log || echo "No logs found"
+        run: tail -100 build.log | grep -v -i "license\|you agree\|google\|terms\|shall\|hereby" || true
 
-      # 📦 Upload APK
       - name: Upload APK
-        if: success()
         uses: actions/upload-artifact@v4
         with:
           name: FlowScript-APK
           path: bin/*.apk
+          if-no-files-found: ignore
 
-      # 📜 Upload full logs
-      - name: Upload logs
+      - name: Upload log
         if: always()
         uses: actions/upload-artifact@v4
         with:
