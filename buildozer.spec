@@ -17,6 +17,7 @@ android.add_res = res
 android.add_manifests = manifest_patch.xml
 orientation = portrait
 fullscreen = 0
+android.accept_sdk_license = True
 android.sdk_path = /home/runner/.buildozer/android/platform/android-sdk
 
 [buildozer]
