@@ -19,7 +19,7 @@ android.minapi = 21
 android.ndk = 25b
 android.build_tools_version = 33.0.0
 
-# Building for your modern Motorola 5G device
+
 android.archs = arm64-v8a, armeabi-v7a
 android.allow_backup = True
 android.add_res = res
@@ -28,6 +28,10 @@ orientation = portrait
 fullscreen = 0
 android.accept_sdk_license = True
 android.sdk_path = /home/runner/.buildozer/android/platform/android-sdk
+android.add_src = 
+    app/FlowScriptService.java,
+    app/FlowScriptForegroundService.java,
+    app/FlowScriptScreenCapture.java
 
 [buildozer]
 log_level = 2
