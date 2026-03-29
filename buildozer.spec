@@ -13,7 +13,7 @@ requirements = python3,kivy==2.3.0,requests,pyjnius,android
 
 # (Section 3: Android Specifics)
 # Added foreground service permissions required for API 33+
-android.permissions = INTERNET, BIND_ACCESSIBILITY_SERVICE, POST_NOTIFICATIONS, FOREGROUND_SERVICE, FOREGROUND_SERVICE_DATA_SYNC
+android.permissions = INTERNET,BIND_ACCESSIBILITY_SERVICE,FOREGROUND_SERVICE,FOREGROUND_SERVICE_DATA_SYNC,RECEIVE_BOOT_COMPLETED,POST_NOTIFICATIONS,READ_MEDIA_IMAGES
 android.api = 33
 android.minapi = 21
 android.ndk = 25b
