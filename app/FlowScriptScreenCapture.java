@@ -1,4 +1,4 @@
-package app;
+package app.flowscript;
 
 import android.app.Activity;
 import android.content.Context;
