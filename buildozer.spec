@@ -28,7 +28,7 @@ orientation = portrait
 fullscreen = 0
 android.accept_sdk_license = True
 android.sdk_path = /home/runner/.buildozer/android/platform/android-sdk
-android.add_src = app/FlowScriptService.java,app/FlowScriptForegroundService.java,app/FlowScriptScreenCapture.java
+android.add_src = src
 [buildozer]
 log_level = 2
 warn_on_root = 1
