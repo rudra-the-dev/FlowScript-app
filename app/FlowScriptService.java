@@ -1,4 +1,4 @@
-package app; // Match buildozer.spec
+package app.flowscript; // Match buildozer.spec
 
 import android.accessibilityservice.AccessibilityService;
 import android.accessibilityservice.AccessibilityServiceInfo;
