@@ -1,4 +1,4 @@
-package app; // Match buildozer.spec
+package app.flowscript; // Match buildozer.spec
 
 import android.app.Notification;
 import android.app.NotificationChannel;
